@@ -6,6 +6,8 @@ import { UserEntity } from './user.entity';
 import { sign } from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { UserResponse } from './types/userResponse.interface';
+import { LoginUserDto } from './dto/loginUser.dto';
+import { compare } from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -14,6 +16,7 @@ export class UserService {
     private readonly userRepository: Repository<UserEntity>,
     private configService: ConfigService,
   ) {}
+
   async createUser(createUserDto: CreateUserDto): Promise<UserEntity> {
     const userByEmail = this.userRepository.findOne({
       where: { email: createUserDto.email },
@@ -32,6 +35,36 @@ export class UserService {
     const newUser = new UserEntity();
     Object.assign(newUser, createUserDto);
     return await this.userRepository.save(newUser);
+  }
+
+  async login(loginUserDto: LoginUserDto): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({
+      where: { email: loginUserDto.email },
+      select: ['id', 'bio', 'email', 'image', 'username', 'password'],
+    });
+
+    if (!user) {
+      throw new HttpException(
+        'Credentials are not valid',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    const isPassCorrect = await compare(loginUserDto.password, user.password);
+
+    if (!isPassCorrect) {
+      throw new HttpException(
+        'Credentials are not valid',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    delete user.password;
+    return user;
+  }
+
+  findById(id: number): Promise<UserEntity> {
+    return this.userRepository.findOne({ where: { id } });
   }
 
   generateJwt(user: UserEntity): string {
