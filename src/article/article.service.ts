@@ -1,7 +1,7 @@
 import { UserEntity } from '@app/user/user.entity';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { getRepositoryToken, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, DeleteResult, getRepository, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, DeleteResult, Repository } from 'typeorm';
 import { ArticleEntity } from './article.entity';
 import { CreateArticleDto } from './dto/createArticle.dto';
 import { ArticleResponse } from './types/articleResponse.interface';
@@ -105,6 +105,28 @@ export class ArticleService {
 
     Object.assign(article, updateArticleDto);
     return await this.articleRepository.save(article);
+  }
+
+  async addArticleToFavorites(
+    userId: number,
+    slug: string,
+  ): Promise<ArticleEntity> {
+    const article = await this.findBySlug(slug);
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['favorites'],
+    });
+    const isNotFavorites = user.favorites.find(
+      (likedArticle) => likedArticle.id === article.id,
+    );
+    if (!isNotFavorites) {
+      user.favorites.push(article);
+      article.favoritesCount++;
+      await this.userRepository.save(user);
+      await this.articleRepository.save(article);
+    }
+
+    return article;
   }
 
   buildArticleResponse(article: ArticleEntity): ArticleResponse {
