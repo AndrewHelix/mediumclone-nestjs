@@ -42,15 +42,42 @@ export class ArticleService {
         id: author.id,
       });
     }
+
+    if (query.favorited) {
+      const author = await this.userRepository.findOne({
+        where: { username: query.favorited },
+        relations: ['favorites'],
+      });
+      const ids = author.favorites.map((article) => article.id);
+      if (ids.length > 0) {
+        queryBuilder.andWhere('articles.id IN (:...ids)', { ids });
+      } else {
+        queryBuilder.andWhere('1=0');
+      }
+    }
     if (query.limit) {
       queryBuilder.limit(query.limit);
     }
     if (query.offset) {
       queryBuilder.offset(query.offset);
     }
-    const articles = await queryBuilder.getMany();
 
-    return { articles, articlesCount };
+    let favoriteIds: number[] = [];
+
+    if (userId) {
+      const currentUser = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['favorites'],
+      });
+      favoriteIds = currentUser.favorites.map((favorite) => favorite.id);
+    }
+    const articles = await queryBuilder.getMany();
+    const articlesWithFavorites = articles.map((article) => {
+      const favorited = favoriteIds.includes(article.id);
+      return { ...article, favorited };
+    });
+
+    return { articles: articlesWithFavorites, articlesCount };
   }
 
   async createArticle(
@@ -122,6 +149,28 @@ export class ArticleService {
     if (!isNotFavorites) {
       user.favorites.push(article);
       article.favoritesCount++;
+      await this.userRepository.save(user);
+      await this.articleRepository.save(article);
+    }
+
+    return article;
+  }
+
+  async deleteArticleFromFavorites(
+    userId: number,
+    slug: string,
+  ): Promise<ArticleEntity> {
+    const article = await this.findBySlug(slug);
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['favorites'],
+    });
+    const articleIndex = user.favorites.findIndex(
+      (likedArticle) => likedArticle.id === article.id,
+    );
+    if (articleIndex >= 0) {
+      user.favorites.splice(articleIndex, 1);
+      article.favoritesCount--;
       await this.userRepository.save(user);
       await this.articleRepository.save(article);
     }
