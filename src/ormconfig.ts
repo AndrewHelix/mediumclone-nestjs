@@ -5,6 +5,8 @@ import { AddUsernameToUsers1677598709829 } from './migrations/1677598709829-AddU
 import { CreateArticles1677678750950 } from './migrations/1677678750950-CreateArticles';
 import { AddRelationsBetweenArticleAndUser1677680534396 } from './migrations/1677680534396-AddRelationsBetweenArticleAndUser';
 import { AddFavoriteRelationsBetweenArticleAndUser1677740329740 } from './migrations/1677740329740-AddFavoriteRelationsBetweenArticleAndUser';
+import { CreateFollows1677759442046 } from './migrations/1677759442046-CreateFollows';
+import { FollowEntity } from './profile/follow.entity';
 import { TagEntity } from './tag/tag.entity';
 import { UserEntity } from './user/user.entity';
 
@@ -15,7 +17,7 @@ const config: PostgresConnectionOptions = {
   username: 'mediumclone',
   password: '1234',
   database: 'mediumclone',
-  entities: [TagEntity, UserEntity, ArticleEntity],
+  entities: [TagEntity, UserEntity, ArticleEntity, FollowEntity],
   synchronize: false,
   migrations: [
     CreateTags1677590778395,
@@ -23,6 +25,7 @@ const config: PostgresConnectionOptions = {
     CreateArticles1677678750950,
     AddRelationsBetweenArticleAndUser1677680534396,
     AddFavoriteRelationsBetweenArticleAndUser1677740329740,
+    CreateFollows1677759442046,
   ],
 };
 
