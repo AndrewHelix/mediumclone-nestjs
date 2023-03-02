@@ -10,6 +10,10 @@ import { validate, ValidationError } from 'class-validator';
 export class BackendValidationPipe implements PipeTransform {
   async transform(value: any, metadata: ArgumentMetadata) {
     const object = plainToInstance(metadata.metatype, value);
+    if (typeof object !== 'object') {
+      return value;
+    }
+
     const errors = await validate(object);
 
     if (!errors.length) {
